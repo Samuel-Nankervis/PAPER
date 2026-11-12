@@ -46,7 +46,7 @@ PAPER is part of the RPS suite and builds on [ROCK](https://github.com/brunocata
 - [ROCK](https://www.nexusmods.com/fallout4/mods/108881) 1.0 with its requirements, including [FRIK](https://www.nexusmods.com/fallout4/mods/53464) 0.79.1 or newer with FRIK API 2.3. PAPER binds ROCK's provider API 2.0; without ROCK, PAPER logs why and animates nothing, and an older ROCK stops the game at the main menu (see [Compatibility](#compatibility)).
 - Optional: [RPS UI Framework](https://www.nexusmods.com/fallout4/mods/108951), for PAPER's page in its settings menu (also opened from RobCo PALM's Config) and PAPER's diagnostic drawing.
 
-The PAPER 1.2 download on Nexus Mods is built for ROCK 0.92. This README describes current source.
+PAPER 2.0 is released together with ROCK 1.0, RPS UI Framework 2.0 and RobCo PALM 2.0; update them together. PAPER 1.2 and earlier were built for ROCK 0.92.
 
 ### Recommended install
 
