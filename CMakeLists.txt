@@ -19,7 +19,7 @@ if(NOT EXISTS "${RPSUI_INCLUDE_DIR}/RPS_UI_Framework/WorldDraw.h")
   message(FATAL_ERROR "RPS UI Framework headers not found in '${RPSUI_INCLUDE_DIR}'; set RPSUI_INCLUDE_DIR.")
 endif()
 # RPS Framework's staged package: the settings files (RPS::Settings) and the
-# header-only required-update stop (RPS/Runtime/RequiredUpdate.h).
+# header-only caller naming for refusal logs (RPS/Runtime/CallerModule.h).
 set(RPSFramework_DIR "${WORKSPACE_ROOT}/my_frameworks_and_sdks/RPS_Framework/build-fast/stage/lib/cmake/RPSFramework" CACHE PATH "RPS Framework staged package")
 # PAPER's own provider API: self-contained headers PAPER compiles against.
 set(PAPER_PUBLIC_INCLUDE_DIR "${ROOT_DIR}/include")

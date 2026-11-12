@@ -3,51 +3,13 @@
 #include "PaperLog.h"
 
 #include <PAPER/Provider.h>
-#include <RPS/Runtime/RequiredUpdate.h>
-
-#include <string>
+#include <RPS/Runtime/CallerModule.h>
 
 namespace paper::required_updates
 {
     namespace
     {
-        namespace required_update = RPS::Runtime::RequiredUpdate;
-
-        std::wstring paperVersion()
-        {
-            return std::wstring(Version::NAME.begin(), Version::NAME.end());
-        }
-
-        // DLL file names for the log; characters outside ASCII become '?'.
-        std::string narrowForLog(const std::wstring& text)
-        {
-            std::string result;
-            result.reserve(text.size());
-            for (const wchar_t c : text)
-                result.push_back(c > 0 && c < 0x80 ? static_cast<char>(c) : '?');
-            return result;
-        }
-
-        struct Caller
-        {
-            std::wstring dll;      // for the error box
-            std::string dllForLog;
-        };
-
-        Caller identify(const void* callerAddress)
-        {
-            Caller caller{ required_update::moduleFileNameAt(callerAddress), {} };
-            caller.dllForLog = caller.dll.empty() ? std::string{ "an unidentified module" } : narrowForLog(caller.dll);
-            if (caller.dll.empty())
-                caller.dll = L"A mod (see PAPER.log)";
-            return caller;
-        }
-
-        void reportConsumerOlder(const Caller& caller)
-        {
-            required_update::report(caller.dll + L" was built for an older PAPER and does not work with PAPER " +
-                paperVersion() + L". Update it or remove it.");
-        }
+        namespace caller_module = RPS::Runtime::CallerModule;
 
         // Consumers request the exact major, minor and table size their headers
         // declare (PAPER/Client.h), so every version refusal is a real mismatch.
@@ -56,21 +18,6 @@ namespace paper::required_updates
             using rock::api::Status;
             return status == Status::UnknownInterface || status == Status::UnsupportedMajor ||
                 status == Status::UnsupportedMinor || status == Status::TableTooSmall || status == Status::InvalidSize;
-        }
-
-        void reportRockMismatch()
-        {
-            required_update::report(L"PAPER " + paperVersion() +
-                L" does not work with the installed ROCK: they were built for different ROCK versions. Install "
-                L"matching versions of ROCK and PAPER.");
-        }
-
-        void flushLog() noexcept
-        {
-            try {
-                if (logger::instance)
-                    logger::instance->flush();
-            } catch (...) {}
         }
     }
 
@@ -90,49 +37,43 @@ namespace paper::required_updates
         default:
             return;  // not a version refusal
         }
-        if (!required_update::firstFromCaller(callerAddress))
+        if (!caller_module::firstFromCaller(callerAddress))
             return;
         try {
-            const auto caller = identify(callerAddress);
+            const auto dll = caller_module::moduleNameForLog(callerAddress);
             if (consumerOlder) {
-                PAPER_LOG_CRITICAL(Api,
-                    "{} asked for interface {} major {}: it was built for an older PAPER. The game stops at the main "
-                    "menu until it is updated or removed.",
-                    caller.dllForLog, static_cast<std::uint32_t>(id), requestedMajor);
-                reportConsumerOlder(caller);
+                PAPER_LOG_ERROR(Api,
+                    "{} asked for interface {} major {}: it was built for an older PAPER and gets no PAPER features "
+                    "until it is updated.",
+                    dll, static_cast<std::uint32_t>(id), requestedMajor);
             } else {
-                PAPER_LOG_CRITICAL(Api,
-                    "{} asked for interface {} major {} (status {}): it needs a newer PAPER than {}. The game stops at "
-                    "the main menu until PAPER is updated.",
-                    caller.dllForLog, static_cast<std::uint32_t>(id), requestedMajor, static_cast<std::uint32_t>(status),
+                PAPER_LOG_ERROR(Api,
+                    "{} asked for interface {} major {} (status {}): it needs a newer PAPER than {} and gets no PAPER "
+                    "features until PAPER is updated.",
+                    dll, static_cast<std::uint32_t>(id), requestedMajor, static_cast<std::uint32_t>(status),
                     Version::NAME);
-                required_update::report(
-                    caller.dll + L" needs a newer PAPER than " + paperVersion() + L". Update PAPER.");
             }
         } catch (...) {}
     }
 
     void noteRetiredExport(const char* exportName, const void* callerAddress) noexcept
     {
-        if (!required_update::firstFromCaller(callerAddress))
+        if (!caller_module::firstFromCaller(callerAddress))
             return;
         try {
-            const auto caller = identify(callerAddress);
-            PAPER_LOG_CRITICAL(Api,
-                "{} called {}, PAPER's retired pre-2.0 API: it was built for an older PAPER. The game stops at the "
-                "main menu until it is updated or removed.",
-                caller.dllForLog, exportName ? exportName : "a retired export");
-            reportConsumerOlder(caller);
+            PAPER_LOG_ERROR(Api,
+                "{} called {}, PAPER's retired pre-2.0 API: it was built for an older PAPER and gets no PAPER "
+                "features until it is updated.",
+                caller_module::moduleNameForLog(callerAddress), exportName ? exportName : "a retired export");
         } catch (...) {}
     }
 
     void noteRockMissingDiscovery() noexcept
     {
         try {
-            PAPER_LOG_CRITICAL(Api,
-                "ROCK.dll does not export ROCKAPI_QueryInterfaceV1: it is older than PAPER supports. The game stops at "
-                "the main menu until ROCK and PAPER match.");
-            reportRockMismatch();
+            PAPER_LOG_ERROR(Api,
+                "ROCK.dll does not export ROCKAPI_QueryInterfaceV1: it is older than PAPER supports. PAPER stays idle "
+                "until ROCK and PAPER match.");
         } catch (...) {}
     }
 
@@ -141,31 +82,19 @@ namespace paper::required_updates
         if (!isVersionRefusal(status))
             return;
         try {
-            PAPER_LOG_CRITICAL(Api,
+            PAPER_LOG_ERROR(Api,
                 "ROCK refused PAPER's {} request with status {}: ROCK and PAPER were built for different ROCK API "
-                "versions. The game stops at the main menu until they match.",
+                "versions. PAPER stays idle until they match.",
                 interfaceName ? interfaceName : "discovery", static_cast<std::uint32_t>(status));
-            reportRockMismatch();
         } catch (...) {}
     }
 
     void noteRpsUiWithoutDiscovery() noexcept
     {
         try {
-            PAPER_LOG_CRITICAL(Api,
-                "RPS_UI_Framework.dll does not export its 2.0 discovery: it is older than PAPER supports. The game "
-                "stops at the main menu until they match.");
-            required_update::report(L"PAPER " + paperVersion() +
-                L" does not work with the installed RPS UI Framework: it is too old. Update RPS UI Framework.");
+            PAPER_LOG_ERROR(Api,
+                "RPS_UI_Framework.dll does not export its 2.0 discovery: it is older than PAPER supports. PAPER's "
+                "diagnostic drawing stays off until it is updated.");
         } catch (...) {}
-    }
-
-    void watch() noexcept
-    {
-        if (!required_update::watchMainMenu(L"PAPER: update required", &flushLog)) {
-            try {
-                PAPER_LOG_ERROR(Api, "The UI is unavailable; version mismatches cannot stop the game at the main menu");
-            } catch (...) {}
-        }
     }
 }

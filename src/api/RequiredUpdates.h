@@ -1,10 +1,9 @@
 #pragma once
 
-// Version mismatches stop the game at the main menu with an error box naming
-// the mod to update (RPS/Runtime/RequiredUpdate.h), in both directions: a mod
-// built for another PAPER API asking PAPER for an interface, and a ROCK that
-// does not serve the API PAPER was built for. A missing ROCK is not a
-// mismatch: PAPER then stays idle and the game keeps running.
+// Version mismatches are logged, naming the mod to update, in both
+// directions: a mod built for another PAPER API asking PAPER for an
+// interface, and a ROCK that does not serve the API PAPER was built for. The
+// refused side runs without the other's features; the game keeps running.
 
 #include <PAPER/Abi.h>
 #include <ROCK/Abi.h>
@@ -27,9 +26,6 @@ namespace paper::required_updates
     void noteRockRefusal(rock::api::Status status, const char* interfaceName) noexcept;
 
     // Any thread. RPS_UI_Framework.dll is loaded but older than the API PAPER
-    // was built for, so PAPER's diagnostic drawing would silently stay off.
+    // was built for, so PAPER's diagnostic drawing stays off.
     void noteRpsUiWithoutDiscovery() noexcept;
-
-    // Once, from the F4SE GameLoaded message.
-    void watch() noexcept;
 }

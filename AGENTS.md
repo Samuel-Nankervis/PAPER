@@ -10,7 +10,7 @@ PAPER is a Fallout 4 VR F4SE plugin (`PAPER.dll`) that restores reload and weapo
 - Add PAPER's `include/` directory through a CMake cache variable such as `PAPER_INCLUDE_DIR`, include `<PAPER/...>`, resolve `PAPERAPI_QueryInterfaceV1` from the loaded `PAPER.dll`, and connect with `paper::api::Client`. Never include headers from `src/` or copy PAPER's headers into the consumer.
 - Read `docs/api/Provider.md` first, then `docs/api/PhysicalReload.md` when the mod drives reloads with the player's hands. `tests/ConsumerExample.cpp` is the minimal consumer.
 - Updating a mod built against PAPER 1.2 (`PAPERApi.h`): `docs/api/Migration.md` maps every old call to its replacement. ROCK's `skills/rock-1.0-migration/SKILL.md` covers PAPER, ROCK, RPS UI Framework and RobCo PALM together.
-- When PAPER is absent, the consumer turns its PAPER features off and keeps running. A version mismatch never runs silently: PAPER names a consumer built for another PAPER API in an error box at the main menu and closes the game when the box is closed. Request exactly the versions your headers declare (`paper::api::Client` does); never probe for optional versions with trial queries.
+- When PAPER is absent, the consumer turns its PAPER features off and keeps running. A consumer built for another PAPER API is refused and named once in `PAPER.log`; the game keeps running. Request exactly the versions your headers declare (`paper::api::Client` does); never probe for optional versions with trial queries.
 
 ## Repository map
 
@@ -80,7 +80,7 @@ Tests live in `build-fast` but outside the default build. Every test target name
 - Public headers include only the C++ standard library and other `include/PAPER/` headers: never CommonLibF4VR, ROCK, engine or F4SE types.
 - Every entry point validates the caller's record `size` and `version` before reading it. Records use fixed-width types.
 - `PAPERAPI_QueryInterfaceV1` serves only the current majors. The pre-2.0 exports (`PAPERAPI_GetProviderApi`, `PAPERAPI_GetProviderDescriptorV1`, `PAPERAPI_QueryPhysicalReloadV1/V2/V3`) only refuse.
-- Every version refusal and every call to a pre-2.0 export is logged with the calling DLL and stops the game at the main menu; so does a loaded ROCK that does not serve the ROCK API PAPER was built for (`src/api/RequiredUpdates.cpp`). A missing ROCK leaves PAPER idle and the game running.
+- Every version refusal and every call to a pre-2.0 export is logged once with the calling DLL; so is a loaded ROCK that does not serve the ROCK API PAPER was built for, which leaves PAPER idle (`src/api/RequiredUpdates.cpp`). No mismatch stops the game. A missing ROCK leaves PAPER idle and the game running.
 
 ### Configuration
 

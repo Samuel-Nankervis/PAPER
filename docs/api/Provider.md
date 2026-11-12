@@ -40,13 +40,11 @@ still exist only to refuse outdated consumers: each returns null. A mod built
 against them must be rebuilt against these headers; [Migration](Migration.md)
 lists where each PAPER 1.2 call went.
 
-A version mismatch stops the game. After any version refusal or a call to a
-pre-2.0 export, PAPER logs the calling DLL and, when the main menu opens (or
-at once, if it is already open), shows an error box naming that DLL and what
-to update; the game closes when the box is closed. Request exactly the
-versions your headers declare, as `Client` does; never probe for versions with
-trial queries. When `PAPER.dll` is not loaded, turn your PAPER features off and
-keep running.
+After any version refusal or a call to a pre-2.0 export, PAPER logs the
+calling DLL once in `PAPER.log` and the game keeps running. Request exactly
+the versions your headers declare, as `Client` does; never probe for versions
+with trial queries. When `PAPER.dll` is not loaded or refuses your request,
+turn your PAPER features off and keep running.
 
 Every record starts with `size` and `version` (`kRecordVersion`, 1); calls
 reject a wrong size or version. All calls return `Status` unless noted.

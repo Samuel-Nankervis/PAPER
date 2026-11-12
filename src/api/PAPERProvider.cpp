@@ -943,7 +943,7 @@ extern "C" paper::api::Status PAPER_CALL PAPERAPI_QueryInterfaceV1(const paper::
 }
 
 // Retired pre-2.0 discovery exports. They stay exported so a mod built for
-// them is named in the required-update stop instead of failing on a missing
+// them is named in PAPER.log instead of failing on a missing
 // symbol; each returns no table. Their names are never reused.
 extern "C" const void* PAPER_CALL PAPERAPI_GetProviderApi(std::uint32_t) noexcept
 {

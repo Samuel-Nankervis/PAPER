@@ -5,8 +5,7 @@ PAPER 1.2 published one table, `PaperProviderApiV1`, through the RPS SDK's
 `PAPERAPI_GetProviderDescriptorV1`. PAPER 2.0 publishes provider API **2.0**
 from this repository's `include/PAPER/`, found through
 `PAPERAPI_QueryInterfaceV1`. The old exports still exist only to refuse: each
-returns null, and PAPER stops the game at the main menu with an error box
-naming the mod that called it. A mod built against `PAPERApi.h` has to be
+returns null, and PAPER names the mod that called it in `PAPER.log`. A mod built against `PAPERApi.h` has to be
 rebuilt with the changes on this page.
 
 PAPER 2.0 runs on ROCK 1.0. A mod that uses both moves to ROCK's provider API
@@ -47,8 +46,9 @@ paper.connect(query, "MyMod", capabilities);       // game thread, once PAPER is
 `connect` registers your owner on the Provider interface with the capability
 mask you ask for; `acquire(table)` returns any further interface. Request
 exactly the versions your headers declare, as `Client` does. Never probe with
-trial queries: every refused query stops the game. When `PAPER.dll` is not
-loaded, turn your PAPER features off and keep running.
+trial queries: every refused query is logged as a mismatch. When `PAPER.dll`
+is not loaded or refuses your request, turn your PAPER features off and keep
+running.
 
 ## 3. Names and records
 
@@ -127,6 +127,5 @@ animation. See [PhysicalReload](PhysicalReload.md).
 2. Search your source for leftovers: `PAPERApi.h`, `PAPERAPI_GetProviderApi`,
    `PAPERAPI_GetProviderDescriptorV1`, `PAPER_API_VERSION`, `V1`, and the
    removed calls listed in section 4.
-3. Start the game with PAPER 2.0 and ROCK 1.0. No error box appears at the
-   main menu, `PAPER.log` names no refusal for your DLL, and your own log shows
+3. Start the game with PAPER 2.0 and ROCK 1.0. `PAPER.log` names no refusal for your DLL, and your own log shows
    `connect` and every `acquire` returning `Ok`.

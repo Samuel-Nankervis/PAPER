@@ -43,7 +43,7 @@ PAPER is part of the RPS suite and builds on [ROCK](https://github.com/brunocata
 
 - Fallout 4 VR `1.2.72.0` and [F4SEVR](https://f4se.silverlock.org/).
 - [VR Address Library for F4SEVR](https://www.nexusmods.com/fallout4/mods/64879).
-- [ROCK](https://www.nexusmods.com/fallout4/mods/108881) 1.0 with its requirements, including [FRIK](https://www.nexusmods.com/fallout4/mods/53464) 0.79.1 or newer with FRIK API 2.3. PAPER binds ROCK's provider API 2.0; without ROCK, PAPER logs why and animates nothing, and an older ROCK stops the game at the main menu (see [Compatibility](#compatibility)).
+- [ROCK](https://www.nexusmods.com/fallout4/mods/108881) 1.0 with its requirements, including [FRIK](https://www.nexusmods.com/fallout4/mods/53464) 0.79.1 or newer with FRIK API 2.3. PAPER binds ROCK's provider API 2.0; without ROCK, PAPER logs why and animates nothing, and with an older ROCK it names the mismatch in `PAPER.log` and animates nothing (see [Compatibility](#compatibility)).
 - Optional: [RPS UI Framework](https://www.nexusmods.com/fallout4/mods/108951), for PAPER's page in its settings menu (also opened from RobCo PALM's Config) and PAPER's diagnostic drawing.
 
 PAPER 2.0 is released together with ROCK 1.0, RPS UI Framework 2.0 and RobCo PALM 2.0; update them together. PAPER 1.2 and earlier were built for ROCK 0.92.
@@ -60,8 +60,8 @@ Install the archive from [Nexus Mods](https://www.nexusmods.com/fallout4/mods/10
 - **Merged Root Behavior** - when the merged behavior graph has no reserve reload animation for the equipped weapon, PAPER plays that graph's normal reload instead, with the game's own timing and ammo count.
 - **Weapons with a FRIK weapon offset** - when ROCK seats a weapon from your FRIK weapon offset, PAPER leaves its reloads and cycles to the game.
 - **Dual wielding and a weapon in the left firing hand** - PAPER leaves the hands to the game's own reload and cycle; the bolt hold-open and the round in the chamber still work in either hand.
-- **Mods built against PAPER's pre-2.0 API** (`PAPERApi.h`) stop the game: at the main menu an error box names each one, and the game closes when the box is closed. Update or remove them; they work again once rebuilt against the headers in [include/PAPER/](include/PAPER/).
-- **An older ROCK** stops the game the same way: PAPER needs the ROCK it was built for, and the error box says so. So does an RPS UI Framework older than PAPER supports.
+- **Mods built against PAPER's pre-2.0 API** (`PAPERApi.h`) are refused and named in `PAPER.log`; the game keeps running without their PAPER features. Update or remove them; they work again once rebuilt against the headers in [include/PAPER/](include/PAPER/).
+- **An older ROCK**: PAPER needs the ROCK it was built for. With another one PAPER names the mismatch in `PAPER.log` and stays idle. An RPS UI Framework older than PAPER supports leaves PAPER's diagnostic drawing off.
 
 ## Configuration
 
