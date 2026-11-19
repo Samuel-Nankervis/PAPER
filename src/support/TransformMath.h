@@ -58,8 +58,11 @@ namespace paper::transform_math
         return result;
     }
 
-    // Smallest scale magnitude a pose transform may carry and still count as a real pose.
-    inline constexpr float kMinimumPoseScaleMagnitude = 0.000001f;
+    // A scale at or below this magnitude has collapsed the transform to a point.
+    // worldPointToLocal and invertTransform need more: they divide by scale only
+    // above 0.0001, so a transform that passes isNonCollapsedTransform is not
+    // guaranteed to invert.
+    inline constexpr float kCollapsedScaleMagnitude = 0.000001f;
 
     template <class Point>
     [[nodiscard]] inline bool isFinitePoint(const Point& point) noexcept
@@ -67,10 +70,10 @@ namespace paper::transform_math
         return std::isfinite(point.x) && std::isfinite(point.y) && std::isfinite(point.z);
     }
 
-    // All nine rotation entries, the translation and the scale are finite, and the
-    // scale magnitude is above kMinimumPoseScaleMagnitude.
+    // Every component is finite and the scale has not collapsed. Same rule and
+    // name as ROCK's transform_math::isNonCollapsedTransform.
     template <class Transform>
-    [[nodiscard]] inline bool isFiniteTransformWithScale(const Transform& transform) noexcept
+    [[nodiscard]] inline bool isNonCollapsedTransform(const Transform& transform) noexcept
     {
         for (int row = 0; row < 3; ++row) {
             for (int column = 0; column < 3; ++column) {
@@ -81,7 +84,7 @@ namespace paper::transform_math
         }
         return transform_math::isFinitePoint(transform.translate) &&
                std::isfinite(transform.scale) &&
-               std::abs(transform.scale) > kMinimumPoseScaleMagnitude;
+               std::abs(transform.scale) > kCollapsedScaleMagnitude;
     }
 
     template <class Matrix>

@@ -114,7 +114,7 @@ namespace paper::debug_visualization
                 const RE::NiTransform& transform,
                 const float length)
             {
-                if (!transform_math::isFiniteTransformWithScale(transform)) {
+                if (!transform_math::isNonCollapsedTransform(transform)) {
                     return;
                 }
                 RE::NiTransform unitScale = transform;
@@ -181,7 +181,7 @@ namespace paper::debug_visualization
                 return false;
             }
             outWorld = api_transform::toNi(frame.transform);
-            return transform_math::isFiniteTransformWithScale(outWorld);
+            return transform_math::isNonCollapsedTransform(outWorld);
         }
 
         [[nodiscard]] const char* modeName(
@@ -208,7 +208,7 @@ namespace paper::debug_visualization
             const bool valid,
             const Color& color)
         {
-            if (!valid || !transform_math::isFiniteTransformWithScale(transform)) {
+            if (!valid || !transform_math::isNonCollapsedTransform(transform)) {
                 return;
             }
             builder.addCross(
@@ -238,28 +238,28 @@ namespace paper::debug_visualization
             bool nativeTargetValid = false;
             if (nativeAuthorityActive && nativeWeaponValid &&
                 handSnapshot.nativeHandValid &&
-                transform_math::isFiniteTransformWithScale(handSnapshot.nativeHandInWeapon)) {
+                transform_math::isNonCollapsedTransform(handSnapshot.nativeHandInWeapon)) {
                 nativeTarget = transform_math::composeTransforms(
                     nativeWeaponWorld,
                     handSnapshot.nativeHandInWeapon);
-                nativeTargetValid = transform_math::isFiniteTransformWithScale(nativeTarget);
+                nativeTargetValid = transform_math::isNonCollapsedTransform(nativeTarget);
             }
 
             RE::NiTransform rockTarget{};
             bool rockTargetValid = false;
             if (rockWeaponValid && rockHandValid &&
-                transform_math::isFiniteTransformWithScale(rockHandInWeapon)) {
+                transform_math::isNonCollapsedTransform(rockHandInWeapon)) {
                 rockTarget = transform_math::composeTransforms(
                     rockWeaponWorld,
                     rockHandInWeapon);
-                rockTargetValid = transform_math::isFiniteTransformWithScale(rockTarget);
+                rockTargetValid = transform_math::isNonCollapsedTransform(rockTarget);
             }
 
             RE::NiTransform resolvedTarget{};
             bool resolvedTargetValid = false;
             if (nativeAuthorityActive &&
                 handSnapshot.resolvedHandWorldValid &&
-                transform_math::isFiniteTransformWithScale(handSnapshot.resolvedHandWorld)) {
+                transform_math::isNonCollapsedTransform(handSnapshot.resolvedHandWorld)) {
                 resolvedTarget = handSnapshot.resolvedHandWorld;
                 resolvedTargetValid = true;
             } else if (nativeTargetValid) {
@@ -399,7 +399,7 @@ namespace paper::debug_visualization
         const RE::NiTransform rockWeaponWorld =
             api_transform::toNi(gripState.weaponWorld);
         const bool rockWeaponValid =
-            gripValid && transform_math::isFiniteTransformWithScale(rockWeaponWorld);
+            gripValid && transform_math::isNonCollapsedTransform(rockWeaponWorld);
 
         addWeaponFrame(
             builder,

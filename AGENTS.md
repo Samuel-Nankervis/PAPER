@@ -48,7 +48,7 @@ Tests live in `build-fast` but outside the default build. Every test target name
 
 ## Conventions
 
-- Finite checks on engine points and transforms live in `src/support/TransformMath.h` (`transform_math::isFinitePoint`, `transform_math::isFiniteTransformWithScale`). Use them instead of writing a local copy. `native_pose_pipeline_policy::finiteTransform` is a different rule (plain `api::Transform`, no scale check) and stays separate.
+- Finite checks on engine points and transforms live in `src/support/TransformMath.h` (`transform_math::isFinitePoint`, `transform_math::isNonCollapsedTransform`, the same rule and name ROCK uses). Use them instead of writing a local copy. A transform that passes `isNonCollapsedTransform` is not guaranteed to invert: `invertTransform` divides by scale only above 0.0001. `native_pose_pipeline_policy::finiteTransform` is a different rule (plain `api::Transform`, no scale check) and stays separate.
 
 ## Runtime files
 

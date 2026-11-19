@@ -697,7 +697,7 @@ namespace paper::exact_clip_preharvest
             outTransform.rotate = transform_math::transposeRotation(
                 transform_math::havokQuaternionToNiRows<RE::NiMatrix3>(source.rotation));
             outTransform.scale = source.scale[0];
-            return transform_math::isFiniteTransformWithScale(outTransform);
+            return transform_math::isNonCollapsedTransform(outTransform);
         }
 
         [[nodiscard]] bool guardedSampleTracks(
