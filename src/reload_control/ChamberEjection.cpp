@@ -4,6 +4,7 @@
 #include "api/RockApiClient.h"
 #include "native/NativeOffsets.h"
 #include "support/Fo4VrRuntime.h"
+#include "support/TransformMath.h"
 
 #include <F4SE/API.h>
 #include <F4SE/Interfaces.h>
@@ -99,11 +100,6 @@ namespace paper::chamber_ejection
             return REL::Module::get().base();
         }
 
-        [[nodiscard]] bool finite(const RE::NiPoint3& value) noexcept
-        {
-            return std::isfinite(value.x) && std::isfinite(value.y) && std::isfinite(value.z);
-        }
-
         // The same reference Euler convention the game's spawns use.
         [[nodiscard]] RE::NiPoint3 referenceAngles(const RE::NiMatrix3& rotation) noexcept
         {
@@ -135,13 +131,13 @@ namespace paper::chamber_ejection
         {
             auto* handler = RE::TESDataHandler::GetSingleton();
             auto* launch = freeLaunch();
-            if (!handler || !cell || !launch || !finite(position) || !finite(velocity) || !finite(spin)) {
+            if (!handler || !cell || !launch || !transform_math::isFinitePoint(position) || !transform_math::isFinitePoint(velocity) || !transform_math::isFinitePoint(spin)) {
                 return 0;
             }
             RE::NEW_REFR_DATA data{};
             data.location = position;
             data.direction = referenceAngles(rotation);
-            if (!finite(data.direction)) {
+            if (!transform_math::isFinitePoint(data.direction)) {
                 return 0;
             }
             data.object = t_ejection->ammo;
@@ -212,7 +208,7 @@ namespace paper::chamber_ejection
             } search{ &point.found, &point.position, &point.rotation };
             using Find = std::uint32_t (*)(RE::NiAVObject*, Search*);
             (void)reinterpret_cast<Find>(moduleBase() + offsets::kFunc_FindCasingPoint)(weapon, &search);
-            return point.found != 0 && finite(point.position);
+            return point.found != 0 && transform_math::isFinitePoint(point.position);
         }
 
         // Rows are a node's axes in the world, so a world vector turns by multiplying

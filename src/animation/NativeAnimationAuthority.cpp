@@ -332,22 +332,6 @@ namespace paper::native_animation_authority
             return name ? std::string_view(name) : std::string_view{};
         }
 
-        [[nodiscard]] bool finiteTransform(const RE::NiTransform& transform)
-        {
-            for (int row = 0; row < 3; ++row) {
-                for (int column = 0; column < 3; ++column) {
-                    if (!std::isfinite(transform.rotate.entry[row][column])) {
-                        return false;
-                    }
-                }
-            }
-            return std::isfinite(transform.translate.x) &&
-                   std::isfinite(transform.translate.y) &&
-                   std::isfinite(transform.translate.z) &&
-                   std::isfinite(transform.scale) &&
-                   std::abs(transform.scale) > 0.000001f;
-        }
-
         [[nodiscard]] native_animation_authority_policy::ManualCycleHandMotionSample
             measureManualCycleHandMotion(
                 const RE::NiTransform& baselineHandInWeapon,
@@ -356,7 +340,7 @@ namespace paper::native_animation_authority
             const RE::NiTransform delta = transform_math::composeTransforms(
                 transform_math::invertTransform(baselineHandInWeapon),
                 currentHandInWeapon);
-            if (!finiteTransform(delta)) {
+            if (!transform_math::isFiniteTransformWithScale(delta)) {
                 return {};
             }
 
@@ -676,11 +660,11 @@ namespace paper::native_animation_authority
                 const int transformIndex = chain[chainPosition - 1];
                 const RE::NiTransform& local =
                     authoritativeLocal(tree.transforms[transformIndex]);
-                if (!finiteTransform(local)) {
+                if (!transform_math::isFiniteTransformWithScale(local)) {
                     return false;
                 }
                 model = transform_math::composeTransforms(model, local);
-                if (!finiteTransform(model)) {
+                if (!transform_math::isFiniteTransformWithScale(model)) {
                     return false;
                 }
             }
@@ -769,7 +753,7 @@ namespace paper::native_animation_authority
                 }
                 const RE::NiTransform& local =
                     authoritativeLocal(source.transforms[transformIndex]);
-                if (!finiteTransform(local)) {
+                if (!transform_math::isFiniteTransformWithScale(local)) {
                     continue;
                 }
                 out.localTransforms[fingerIndex] = local;
@@ -800,7 +784,7 @@ namespace paper::native_animation_authority
             const RE::NiTransform& animatedWeaponLocal =
                 authoritativeLocal(weaponTransform);
             if (weaponTransform.parPos != primaryHandIndex ||
-                !finiteTransform(animatedWeaponLocal)) {
+                !transform_math::isFiniteTransformWithScale(animatedWeaponLocal)) {
                 return false;
             }
 
@@ -815,7 +799,7 @@ namespace paper::native_animation_authority
                 transform_math::composeTransforms(
                     primaryHandModel.model,
                     animatedWeaponLocal);
-            if (!finiteTransform(nativeWeaponModel)) {
+            if (!transform_math::isFiniteTransformWithScale(nativeWeaponModel)) {
                 return false;
             }
 
@@ -836,7 +820,7 @@ namespace paper::native_animation_authority
             out.weaponModel = nativeWeaponModel;
             out.primaryHandInWeapon =
                 resolveHandInWeapon(primaryHandModel.model);
-            if (!finiteTransform(
+            if (!transform_math::isFiniteTransformWithScale(
                     out.primaryHandInWeapon)) {
                 out = {};
                 return false;
@@ -857,7 +841,7 @@ namespace paper::native_animation_authority
                     supportHandModel.rootIndex == primaryHandModel.rootIndex) {
                     const RE::NiTransform supportHandInWeapon =
                         resolveHandInWeapon(supportHandModel.model);
-                    if (finiteTransform(supportHandInWeapon)) {
+                    if (transform_math::isFiniteTransformWithScale(supportHandInWeapon)) {
                         out.supportHandInWeapon =
                             supportHandInWeapon;
                         out.supportHandModel = supportHandModel.model;
@@ -925,7 +909,7 @@ namespace paper::native_animation_authority
 
                 const auto& local =
                     authoritativeLocal(source->transforms[binding.sourceIndex]);
-                if (!finiteTransform(local)) {
+                if (!transform_math::isFiniteTransformWithScale(local)) {
                     continue;
                 }
                 binding.capturedLocal = local;
@@ -1147,7 +1131,7 @@ namespace paper::native_animation_authority
             }
             const auto& transform = tree.transforms[index];
             outWorld = transform.refNode ? transform.refNode->world : transform.world;
-            return finiteTransform(outWorld);
+            return transform_math::isFiniteTransformWithScale(outWorld);
         }
 
         [[nodiscard]] bool readLogicalWorld(
@@ -1162,11 +1146,11 @@ namespace paper::native_animation_authority
             if (transform.parPos >= 0 && transform.parPos < tree.numTransforms) {
                 const auto& logicalParent = tree.transforms[transform.parPos];
                 const RE::NiTransform& parentWorld = logicalParent.refNode ? logicalParent.refNode->world : logicalParent.world;
-                if (!finiteTransform(parentWorld) || !finiteTransform(transform.local)) {
+                if (!transform_math::isFiniteTransformWithScale(parentWorld) || !transform_math::isFiniteTransformWithScale(transform.local)) {
                     return false;
                 }
                 outWorld = transform_math::composeTransforms(parentWorld, transform.local);
-                return finiteTransform(outWorld);
+                return transform_math::isFiniteTransformWithScale(outWorld);
             }
             return readPresentationWorld(tree, index, outWorld);
         }
@@ -1184,8 +1168,8 @@ namespace paper::native_animation_authority
             auto* weaponNode = weaponTransform.refNode;
             auto* controlParent = weaponNode ? weaponNode->parent : nullptr;
             if (!weaponNode || !controlParent ||
-                !finiteTransform(controlParent->world) ||
-                !finiteTransform(weaponNode->local)) {
+                !transform_math::isFiniteTransformWithScale(controlParent->world) ||
+                !transform_math::isFiniteTransformWithScale(weaponNode->local)) {
                 return false;
             }
 
@@ -1204,7 +1188,7 @@ namespace paper::native_animation_authority
             aimFrame.controlWeaponWorld = transform_math::composeTransforms(
                 aimFrame.controlParent->world,
                 aimFrame.weaponInControlParent);
-            aimFrame.controlCaptured = finiteTransform(aimFrame.controlWeaponWorld);
+            aimFrame.controlCaptured = transform_math::isFiniteTransformWithScale(aimFrame.controlWeaponWorld);
             return aimFrame.controlCaptured;
         }
 
@@ -1250,7 +1234,7 @@ namespace paper::native_animation_authority
             auto& aimFrame = s_sourceAimFrame;
             auto* weaponNode = aimFrame.weaponNode;
             if (!weaponNode || !weaponNode->parent ||
-                !finiteTransform(weaponNode->world)) {
+                !transform_math::isFiniteTransformWithScale(weaponNode->world)) {
                 return false;
             }
 
@@ -1269,15 +1253,15 @@ namespace paper::native_animation_authority
             auto* weaponNode = aimFrame.weaponNode;
             auto* weaponParent = weaponNode ? weaponNode->parent : nullptr;
             if (!weaponNode || !weaponParent ||
-                !finiteTransform(weaponWorld) ||
-                !finiteTransform(weaponParent->world)) {
+                !transform_math::isFiniteTransformWithScale(weaponWorld) ||
+                !transform_math::isFiniteTransformWithScale(weaponParent->world)) {
                 return false;
             }
 
             const RE::NiTransform weaponLocal = transform_math::composeTransforms(
                 transform_math::invertTransform(weaponParent->world),
                 weaponWorld);
-            if (!finiteTransform(weaponLocal)) {
+            if (!transform_math::isFiniteTransformWithScale(weaponLocal)) {
                 return false;
             }
 
@@ -1387,7 +1371,7 @@ namespace paper::native_animation_authority
             if (grip.leftGripValid) {
                 outWorld = transform_math::composeTransforms(
                     weaponWorld, grip.leftGripHandInWeapon);
-                return finiteTransform(outWorld);
+                return transform_math::isFiniteTransformWithScale(outWorld);
             }
             const auto& rest = s_supportHandRest;
             rock::api::hands::HandFrame control{};
@@ -1400,7 +1384,7 @@ namespace paper::native_animation_authority
                 api_transform::toNi(rest.pose.handWorld));
             outWorld = transform_math::composeTransforms(
                 api_transform::toNi(control.transform), handFromControl);
-            return finiteTransform(outWorld);
+            return transform_math::isFiniteTransformWithScale(outWorld);
         }
 
         [[nodiscard]] bool resolveBlendedSupportHand(
@@ -1435,12 +1419,12 @@ namespace paper::native_animation_authority
                         api_transform::toNi(rest.fingerLocalTransforms[index]),
                         targetFingers.localTransforms[index],
                         alpha);
-                    if (finiteTransform(blended)) {
+                    if (transform_math::isFiniteTransformWithScale(blended)) {
                         outFingers.localTransforms[index] = blended;
                     }
                 }
             }
-            return finiteTransform(outWorld);
+            return transform_math::isFiniteTransformWithScale(outWorld);
         }
 
         [[nodiscard]] bool publishManualCycleHandPose(
@@ -1548,7 +1532,7 @@ namespace paper::native_animation_authority
             if (!weaponNode ||
                 reinterpret_cast<std::uintptr_t>(weaponNode) !=
                     s_latestManualCycleRockGripBaselines.weaponNode ||
-                !finiteTransform(weaponNode->world)) {
+                !transform_math::isFiniteTransformWithScale(weaponNode->world)) {
                 (void)clearManualCycleVisualForHand(frik_visual_authority::Hand::Left);
                 return;
             }
@@ -1593,7 +1577,7 @@ namespace paper::native_animation_authority
                     s_manualCycleRockGripBaselines.leftHandInWeapon :
                     s_manualCycleRockGripBaselines.rightHandInWeapon;
                 const bool useRockBaseline = rockBaselineValid &&
-                    finiteTransform(rockBaselineHandInWeapon);
+                    transform_math::isFiniteTransformWithScale(rockBaselineHandInWeapon);
                 if (hand == frik_visual_authority::Hand::Right) {
                     handRebase.liveBaselineHandInWeapon =
                         native_animation_authority_policy::resolvePrimaryAnimationBaseline(
@@ -1621,9 +1605,9 @@ namespace paper::native_animation_authority
                 if (strokeGatedHandModel) {
                     handRebase.nativeBaselineHandModel = *strokeGatedHandModel;
                 }
-                if (!finiteTransform(
+                if (!transform_math::isFiniteTransformWithScale(
                         handRebase.liveBaselineHandInWeapon) ||
-                    !finiteTransform(
+                    !transform_math::isFiniteTransformWithScale(
                         handRebase.nativeBaselineHandInWeapon)) {
                     handRebase = {};
                     (void)clearManualCycleVisualForHand(hand);
@@ -1686,7 +1670,7 @@ namespace paper::native_animation_authority
                         fixedWeaponWorld,
                         handRebase.liveBaselineHandInWeapon);
                 handRebase.resolvedHandWorldValid =
-                    finiteTransform(handRebase.resolvedHandWorld);
+                    transform_math::isFiniteTransformWithScale(handRebase.resolvedHandWorld);
                 // The caller continues a running return from the pose on screen.
                 if (hand == frik_visual_authority::Hand::Left &&
                     supportHandReturnRunning()) {
@@ -1764,7 +1748,7 @@ namespace paper::native_animation_authority
                        const RE::NiTransform& child) {
                         return transform_math::composeTransforms(parent, child);
                     });
-            if (!finiteTransform(handWorld)) {
+            if (!transform_math::isFiniteTransformWithScale(handWorld)) {
                 (void)clearManualCycleVisualForHand(hand);
                 return ManualCycleHandVisualResult::Failed;
             }
@@ -2005,7 +1989,7 @@ namespace paper::native_animation_authority
                 aimFrame.desiredWeaponWorld = transform_math::composeTransforms(
                     correction,
                     nativeWeaponWorld);
-                aimFrame.desiredCaptured = finiteTransform(aimFrame.desiredWeaponWorld);
+                aimFrame.desiredCaptured = transform_math::isFiniteTransformWithScale(aimFrame.desiredWeaponWorld);
                 if (!aimFrame.desiredCaptured) {
                     return false;
                 }
@@ -2017,7 +2001,7 @@ namespace paper::native_animation_authority
                     aimFrame.desiredWeaponWorld,
                     nativeWeaponWorld);
             }
-            if (!finiteTransform(correction)) {
+            if (!transform_math::isFiniteTransformWithScale(correction)) {
                 return false;
             }
 
@@ -2054,14 +2038,14 @@ namespace paper::native_animation_authority
                 auto& target = roots[rootCount++];
                 target.index = index;
                 target.world = transform_math::composeTransforms(correction, nativeRootWorld);
-                if (!finiteTransform(target.world)) {
+                if (!transform_math::isFiniteTransformWithScale(target.world)) {
                     return false;
                 }
 
                 if (transform.parPos >= 0 && transform.parPos < tree.numTransforms) {
                     const auto& logicalParent = tree.transforms[transform.parPos];
                     const RE::NiTransform& parentWorld = logicalParent.refNode ? logicalParent.refNode->world : logicalParent.world;
-                    if (!finiteTransform(parentWorld)) {
+                    if (!transform_math::isFiniteTransformWithScale(parentWorld)) {
                         return false;
                     }
                     target.local = transform_math::composeTransforms(
@@ -2070,7 +2054,7 @@ namespace paper::native_animation_authority
                 } else {
                     target.local = target.world;
                 }
-                if (!finiteTransform(target.local)) {
+                if (!transform_math::isFiniteTransformWithScale(target.local)) {
                     return false;
                 }
             }
@@ -2654,19 +2638,19 @@ namespace paper::native_animation_authority
         if (s_manualCycleHandAnimationEligible.load(
                 std::memory_order_acquire)) {
             if (snapshot.rightValid &&
-                finiteTransform(snapshot.rightHandInWeapon)) {
+                transform_math::isFiniteTransformWithScale(snapshot.rightHandInWeapon)) {
                 resolved.rightHandInWeapon = snapshot.rightHandInWeapon;
                 resolved.rightValid = true;
             }
             if (snapshot.leftSupportGripValid &&
-                finiteTransform(snapshot.leftSupportHandInWeapon)) {
+                transform_math::isFiniteTransformWithScale(snapshot.leftSupportHandInWeapon)) {
                 resolved.leftGripHandInWeapon =
                     snapshot.leftSupportHandInWeapon;
                 resolved.leftGripValid = true;
             }
             if (snapshot.leftSupportGripValid &&
                 snapshot.authoredLeftSupportGripActive &&
-                finiteTransform(snapshot.leftSupportHandInWeapon)) {
+                transform_math::isFiniteTransformWithScale(snapshot.leftSupportHandInWeapon)) {
                 resolved.leftHandInWeapon =
                     snapshot.leftSupportHandInWeapon;
                 resolved.authoredLeftActive = true;
@@ -2945,7 +2929,7 @@ namespace paper::native_animation_authority
         const auto& identity = s_latestManualCycleRockGripBaselines;
         auto* weapon = s_sourceAimFrame.weaponNode;
         if (!weapon || reinterpret_cast<std::uintptr_t>(weapon) != identity.weaponNode ||
-            identity.weaponGenerationKey == 0 || !weapon->parent || !finiteTransform(weapon->world)) return;
+            identity.weaponGenerationKey == 0 || !weapon->parent || !transform_math::isFiniteTransformWithScale(weapon->world)) return;
         const auto inverseWeapon = transform_math::invertTransform(weapon->world);
         auto& captured = s_presentedGripBaselines;
         captured.weaponNode = identity.weaponNode;
@@ -2956,7 +2940,7 @@ namespace paper::native_animation_authority
             if (!rockApiClient().queryPresentedHandPose(left ? rock::api::Hand::Left : rock::api::Hand::Right, pose) ||
                 pose.frameIndex != frameIndex || pose.presentationSequence != frameIndex) continue;
             const auto local = transform_math::composeTransforms(inverseWeapon, api_transform::toNi(pose.handWorld));
-            if (!finiteTransform(local)) continue;
+            if (!transform_math::isFiniteTransformWithScale(local)) continue;
             (left ? captured.leftHandInWeapon : captured.rightHandInWeapon) = local;
             (left ? captured.authoredLeftActive : captured.rightValid) = true;
 
@@ -3064,7 +3048,7 @@ namespace paper::native_animation_authority
                             const auto& t = value.translate;
                             const auto& r = value.rotate.entry;
                             trace.log->debug("CYCLE_TRACE pose frame={} hand={} label={} valid={} T=({:.5f},{:.5f},{:.5f}) S={:.6f} R=({:.7f},{:.7f},{:.7f};{:.7f},{:.7f},{:.7f};{:.7f},{:.7f},{:.7f})",
-                                frameIndex, hand, label, valid && finiteTransform(value), t.x, t.y, t.z, value.scale,
+                                frameIndex, hand, label, valid && transform_math::isFiniteTransformWithScale(value), t.x, t.y, t.z, value.scale,
                                 r[0][0], r[0][1], r[0][2], r[1][0], r[1][1], r[1][2], r[2][0], r[2][1], r[2][2]);
                         };
                         pose("weapon", "native-model", trace.nativePose.primaryHandValid, trace.nativePose.weaponModel);
@@ -3312,19 +3296,19 @@ namespace paper::native_animation_authority
 
         const auto& aimFrame = s_sourceAimFrame;
         if (aimFrame.controlCaptured &&
-            finiteTransform(aimFrame.controlWeaponWorld)) {
+            transform_math::isFiniteTransformWithScale(aimFrame.controlWeaponWorld)) {
             outSnapshot.controllerWeaponWorld =
                 aimFrame.controlWeaponWorld;
             outSnapshot.controllerWeaponValid = true;
         }
         if (aimFrame.nativeBaselineCaptured &&
-            finiteTransform(aimFrame.nativeBaselineWeaponWorld)) {
+            transform_math::isFiniteTransformWithScale(aimFrame.nativeBaselineWeaponWorld)) {
             outSnapshot.nativeBaselineWeaponWorld =
                 aimFrame.nativeBaselineWeaponWorld;
             outSnapshot.nativeBaselineWeaponValid = true;
         }
         if (aimFrame.desiredCaptured &&
-            finiteTransform(aimFrame.desiredWeaponWorld)) {
+            transform_math::isFiniteTransformWithScale(aimFrame.desiredWeaponWorld)) {
             outSnapshot.desiredWeaponWorld = aimFrame.desiredWeaponWorld;
             outSnapshot.desiredWeaponValid = true;
         }
@@ -3337,7 +3321,7 @@ namespace paper::native_animation_authority
             const bool poseValid = left ?
                 s_nativeHandPoseCapture.supportHandValid :
                 s_nativeHandPoseCapture.primaryHandValid;
-            if (poseValid && finiteTransform(pose)) {
+            if (poseValid && transform_math::isFiniteTransformWithScale(pose)) {
                 destination.nativeHandInWeapon = pose;
                 destination.nativeHandValid = true;
             }
@@ -3350,25 +3334,25 @@ namespace paper::native_animation_authority
             const auto handIndex = left ? 1u : 0u;
             const auto& rebase = aimFrame.manualCycleHandRebases[handIndex];
             if (rebase.captured &&
-                finiteTransform(rebase.nativeBaselineHandInWeapon)) {
+                transform_math::isFiniteTransformWithScale(rebase.nativeBaselineHandInWeapon)) {
                 destination.nativeBaselineHandInWeapon =
                     rebase.nativeBaselineHandInWeapon;
                 destination.nativeBaselineValid = true;
             }
             if (rebase.captured &&
-                finiteTransform(rebase.liveBaselineHandInWeapon)) {
+                transform_math::isFiniteTransformWithScale(rebase.liveBaselineHandInWeapon)) {
                 destination.liveBaselineHandInWeapon =
                     rebase.liveBaselineHandInWeapon;
                 destination.liveBaselineValid = true;
             }
             if (rebase.resolvedHandInWeaponValid &&
-                finiteTransform(rebase.resolvedHandInWeapon)) {
+                transform_math::isFiniteTransformWithScale(rebase.resolvedHandInWeapon)) {
                 destination.resolvedHandInWeapon =
                     rebase.resolvedHandInWeapon;
                 destination.resolvedHandInWeaponValid = true;
             }
             if (rebase.resolvedHandWorldValid &&
-                finiteTransform(rebase.resolvedHandWorld)) {
+                transform_math::isFiniteTransformWithScale(rebase.resolvedHandWorld)) {
                 destination.resolvedHandWorld = rebase.resolvedHandWorld;
                 destination.resolvedHandWorldValid = true;
             }

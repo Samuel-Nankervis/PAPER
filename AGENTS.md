@@ -46,6 +46,10 @@ cmake --build build-fast --config Release --target PAPER
 
 Tests live in `build-fast` but outside the default build. Every test target name contains `Tests`. Build and run them with `cmake --build build-fast --config Release --target build_tests`, then `ctest --test-dir build-fast -C Release --output-on-failure`. `PAPERPublicHeaderTests` compiles every public header on its own plus the consumer example; `PAPERDiscoveryTests` checks discovery and refused majors; `PAPERObservationApiTests` checks the ABI layout of the published records and tables.
 
+## Conventions
+
+- Finite checks on engine points and transforms live in `src/support/TransformMath.h` (`transform_math::isFinitePoint`, `transform_math::isFiniteTransformWithScale`). Use them instead of writing a local copy. `native_pose_pipeline_policy::finiteTransform` is a different rule (plain `api::Transform`, no scale check) and stays separate.
+
 ## Runtime files
 
 - Plugin: `Data/F4SE/Plugins/PAPER.dll`, registered with F4SE and with ROCK as `PAPER`. Log: `PAPER.log` in `Documents/My Games/Fallout4VR/F4SE/`.

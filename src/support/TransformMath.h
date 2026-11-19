@@ -58,6 +58,32 @@ namespace paper::transform_math
         return result;
     }
 
+    // Smallest scale magnitude a pose transform may carry and still count as a real pose.
+    inline constexpr float kMinimumPoseScaleMagnitude = 0.000001f;
+
+    template <class Point>
+    [[nodiscard]] inline bool isFinitePoint(const Point& point) noexcept
+    {
+        return std::isfinite(point.x) && std::isfinite(point.y) && std::isfinite(point.z);
+    }
+
+    // All nine rotation entries, the translation and the scale are finite, and the
+    // scale magnitude is above kMinimumPoseScaleMagnitude.
+    template <class Transform>
+    [[nodiscard]] inline bool isFiniteTransformWithScale(const Transform& transform) noexcept
+    {
+        for (int row = 0; row < 3; ++row) {
+            for (int column = 0; column < 3; ++column) {
+                if (!std::isfinite(transform.rotate.entry[row][column])) {
+                    return false;
+                }
+            }
+        }
+        return transform_math::isFinitePoint(transform.translate) &&
+               std::isfinite(transform.scale) &&
+               std::abs(transform.scale) > kMinimumPoseScaleMagnitude;
+    }
+
     template <class Matrix>
     inline Matrix transposeRotation(const Matrix& matrix)
     {

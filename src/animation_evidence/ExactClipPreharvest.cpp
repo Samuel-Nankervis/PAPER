@@ -659,22 +659,6 @@ namespace paper::exact_clip_preharvest
             }
         }
 
-        [[nodiscard]] bool isFiniteTransform(const RE::NiTransform& transform)
-        {
-            for (int row = 0; row < 3; ++row) {
-                for (int column = 0; column < 3; ++column) {
-                    if (!std::isfinite(transform.rotate.entry[row][column])) {
-                        return false;
-                    }
-                }
-            }
-            return std::isfinite(transform.translate.x) &&
-                   std::isfinite(transform.translate.y) &&
-                   std::isfinite(transform.translate.z) &&
-                   std::isfinite(transform.scale) &&
-                   std::abs(transform.scale) > 0.000001f;
-        }
-
         [[nodiscard]] bool convertHavokLocalTransform(
             const HkQsTransform& source,
             RE::NiTransform& outTransform)
@@ -713,7 +697,7 @@ namespace paper::exact_clip_preharvest
             outTransform.rotate = transform_math::transposeRotation(
                 transform_math::havokQuaternionToNiRows<RE::NiMatrix3>(source.rotation));
             outTransform.scale = source.scale[0];
-            return isFiniteTransform(outTransform);
+            return transform_math::isFiniteTransformWithScale(outTransform);
         }
 
         [[nodiscard]] bool guardedSampleTracks(

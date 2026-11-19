@@ -48,27 +48,6 @@ namespace paper::debug_visualization
         bool s_published{ false };
         bool s_publishFailureReported{ false };
 
-        [[nodiscard]] bool finitePoint(const RE::NiPoint3& point)
-        {
-            return std::isfinite(point.x) &&
-                   std::isfinite(point.y) &&
-                   std::isfinite(point.z);
-        }
-
-        [[nodiscard]] bool finiteTransform(const RE::NiTransform& transform)
-        {
-            for (int row = 0; row < 3; ++row) {
-                for (int column = 0; column < 3; ++column) {
-                    if (!std::isfinite(transform.rotate.entry[row][column])) {
-                        return false;
-                    }
-                }
-            }
-            return finitePoint(transform.translate) &&
-                   std::isfinite(transform.scale) &&
-                   std::abs(transform.scale) > 0.000001f;
-        }
-
         [[nodiscard]] bool hasGripFlag(
             const std::uint32_t flags,
             const rock::api::weapon::GripFlag flag)
@@ -98,7 +77,7 @@ namespace paper::debug_visualization
                 const RE::NiPoint3& end,
                 const Color& color)
             {
-                if (!finitePoint(start) || !finitePoint(end) ||
+                if (!transform_math::isFinitePoint(start) || !transform_math::isFinitePoint(end) ||
                     lineCount >= lines.size()) {
                     return;
                 }
@@ -135,7 +114,7 @@ namespace paper::debug_visualization
                 const RE::NiTransform& transform,
                 const float length)
             {
-                if (!finiteTransform(transform)) {
+                if (!transform_math::isFiniteTransformWithScale(transform)) {
                     return;
                 }
                 RE::NiTransform unitScale = transform;
@@ -171,7 +150,7 @@ namespace paper::debug_visualization
                 Args&&... args)
             {
                 if (!g_config.debugDrawNativeAnimationText || !format ||
-                    !finitePoint(anchor) || textCount >= textEntries.size()) {
+                    !transform_math::isFinitePoint(anchor) || textCount >= textEntries.size()) {
                     return;
                 }
                 auto& entry = textEntries[textCount++];
@@ -202,7 +181,7 @@ namespace paper::debug_visualization
                 return false;
             }
             outWorld = api_transform::toNi(frame.transform);
-            return finiteTransform(outWorld);
+            return transform_math::isFiniteTransformWithScale(outWorld);
         }
 
         [[nodiscard]] const char* modeName(
@@ -229,7 +208,7 @@ namespace paper::debug_visualization
             const bool valid,
             const Color& color)
         {
-            if (!valid || !finiteTransform(transform)) {
+            if (!valid || !transform_math::isFiniteTransformWithScale(transform)) {
                 return;
             }
             builder.addCross(
@@ -259,28 +238,28 @@ namespace paper::debug_visualization
             bool nativeTargetValid = false;
             if (nativeAuthorityActive && nativeWeaponValid &&
                 handSnapshot.nativeHandValid &&
-                finiteTransform(handSnapshot.nativeHandInWeapon)) {
+                transform_math::isFiniteTransformWithScale(handSnapshot.nativeHandInWeapon)) {
                 nativeTarget = transform_math::composeTransforms(
                     nativeWeaponWorld,
                     handSnapshot.nativeHandInWeapon);
-                nativeTargetValid = finiteTransform(nativeTarget);
+                nativeTargetValid = transform_math::isFiniteTransformWithScale(nativeTarget);
             }
 
             RE::NiTransform rockTarget{};
             bool rockTargetValid = false;
             if (rockWeaponValid && rockHandValid &&
-                finiteTransform(rockHandInWeapon)) {
+                transform_math::isFiniteTransformWithScale(rockHandInWeapon)) {
                 rockTarget = transform_math::composeTransforms(
                     rockWeaponWorld,
                     rockHandInWeapon);
-                rockTargetValid = finiteTransform(rockTarget);
+                rockTargetValid = transform_math::isFiniteTransformWithScale(rockTarget);
             }
 
             RE::NiTransform resolvedTarget{};
             bool resolvedTargetValid = false;
             if (nativeAuthorityActive &&
                 handSnapshot.resolvedHandWorldValid &&
-                finiteTransform(handSnapshot.resolvedHandWorld)) {
+                transform_math::isFiniteTransformWithScale(handSnapshot.resolvedHandWorld)) {
                 resolvedTarget = handSnapshot.resolvedHandWorld;
                 resolvedTargetValid = true;
             } else if (nativeTargetValid) {
@@ -420,7 +399,7 @@ namespace paper::debug_visualization
         const RE::NiTransform rockWeaponWorld =
             api_transform::toNi(gripState.weaponWorld);
         const bool rockWeaponValid =
-            gripValid && finiteTransform(rockWeaponWorld);
+            gripValid && transform_math::isFiniteTransformWithScale(rockWeaponWorld);
 
         addWeaponFrame(
             builder,
